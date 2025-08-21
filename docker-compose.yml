@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - DB_HOST=postgres
+      - DB_USERNAME=healthcare_user
+      - DB_PASSWORD=healthcare_pass
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: healthcare_local
+      POSTGRES_USER: healthcare_user
+      POSTGRES_PASSWORD: healthcare_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres_data:
