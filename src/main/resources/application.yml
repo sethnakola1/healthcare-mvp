@@ -1,15 +1,20 @@
 # ============================================
-# APPLICATION PROPERTIES WITH AWS COGNITO
+# HEALTHCARE MVP APPLICATION CONFIGURATION
 # ============================================
 
-# application.yml
 spring:
+  # Application Configuration
+  application:
+    name: healthcare-mvp
+  profiles:
+    active: local
 
+  # Mail Configuration
   mail:
-    host: smtp.example.com
+    host: smtp.gmail.com
     port: 587
-    username: your-email@gmail.com
-    password: your-email-password
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
     properties:
       mail:
         smtp:
@@ -19,90 +24,111 @@ spring:
           ssl:
             enable: false
 
-  main:
-    allow-bean-definition-overriding: true
-  application:
-    name: healthcare-mvp
-  profiles:
-    active: local
-
   # Database Configuration
   datasource:
-    url: jdbc:postgresql://healthhorizon-db.cy5cs4aqyhju.us-east-1.rds.amazonaws.com:5432/healthcare_mvp_db
-    username: healthcare_mvp_user
-    password: SecurePass2025!@#
-#  datasource:
-##    url: jdbc:postgresql://healthhorizon-db.cy5cs4aqyhju.us-east-1.rds.amazonaws.com:5432/healthcare_mvp_db
-#    url: jdbc:postgresql://44.215.34.241:5432/healthcare_mvp_db
-#    username: healthcare_mvp_user
-#    password: SecurePass2025!@#
+    url: ${DATABASE_URL:jdbc:postgresql://healthhorizon-db.cy5cs4aqyhju.us-east-1.rds.amazonaws.com:5432/healthcare_mvp_db}
+    username: ${DATABASE_USERNAME:healthcare_mvp_user}
+    password: ${DATABASE_PASSWORD:SecurePass2025!@#}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
-      idle-timeout: 60000          # Reduced from 300000 (5 min to 1 min)
-      connection-timeout: 30000     # Increased from 20000
-      max-lifetime: 1800000         # 30 minutes (must be less than database timeout)
+      idle-timeout: 60000
+      connection-timeout: 30000
+      max-lifetime: 1800000
       leak-detection-threshold: 60000
-      validation-timeout: 5000      # Add validation timeout
-      connection-test-query: SELECT 1  # Add test query for PostgreSQL
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
 
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update  # Changed from 'validate' to 'update' temporarily
-    show-sql: true  # Enable to see SQL statements
+      ddl-auto: update
+    show-sql: false
     properties:
       hibernate:
-#        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-        use_sql_comments: true
+        use_sql_comments: false
         jdbc:
           batch_size: 20
         order_inserts: true
         order_updates: true
-        # Add connection pool settings for Hibernate
         connection:
           provider_disables_autocommit: false
-        hikari:
-          autoCommit: false
     open-in-view: false
+
+  # Security Configuration
+  security:
+    require-ssl: false
 
 # Server Configuration
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   compression:
     enabled: true
   http2:
     enabled: true
+  error:
+    include-message: always
+    include-binding-errors: always
 
-# AWS Configuration
-#aws:
-#  region: us-east-1
-#  cognito:
-#    userPoolId: us-east-1_XXXXXXXXX  # Replace with your User Pool ID
-#    clientId: your-client-id          # Replace with your Client ID
-#    clientSecret: your-client-secret  # Replace with your Client Secret
-#
-#  # S3 Configuration for file uploads
-#  s3:
-#    bucket: healthcare-mvp-files
-#    region: us-east-1
+# Custom Application Properties
+app:
+  # CORS Configuration
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+      - "https://localhost:3000"
+      - "http://127.0.0.1:3000"
+      - "http://localhost:3001"
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      - PATCH
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
 
+  # JWT Security Configuration
+  security:
+    jwt:
+      secret: ${JWT_SECRET:ThisIsAVeryLongSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLong1234567890123456789}
+      expiration: ${JWT_EXPIRATION:86400} # 24 hours in seconds
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800} # 7 days in seconds
 
+  # Business Configuration
+  business:
+    commission:
+      default-rate: 20.0
+      max-rate: 30.0
+
+  # Notification Configuration
+  notification:
+    email:
+      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:true}
+    sms:
+      enabled: ${SMS_NOTIFICATIONS_ENABLED:false}
 
 # Logging Configuration
 logging:
   level:
-    com.healthcare.mvp: DEBUG
-    com.healthcare.mvp.auth: TRACE  # More detailed auth logging
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    com.zaxxer.hikari: DEBUG  # Add HikariCP logging
+    com.healthcare.mvp: ${LOG_LEVEL_APP:INFO}
+    com.healthcare.mvp.auth: ${LOG_LEVEL_AUTH:DEBUG}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
+    org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${LOG_LEVEL_SQL_PARAMS:WARN}
+    com.zaxxer.hikari: ${LOG_LEVEL_HIKARI:WARN}
+    root: ${LOG_LEVEL_ROOT:INFO}
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH:logs/healthcare-mvp.log}
 
 # Management & Actuator
 management:
@@ -110,9 +136,18 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+      cors:
+        allowed-origins:
+          - "http://localhost:3000"
+          - "https://localhost:3000"
+        allowed-methods: GET,POST
+        allowed-headers: "*"
   endpoint:
     health:
       show-details: always
+  health:
+    db:
+      enabled: true
 
 # Application Info
 info:
@@ -121,89 +156,49 @@ info:
     description: Comprehensive Healthcare Management System
     version: 1.0.0
     developer: Sethna Kola
+    build-timestamp: ${BUILD_TIMESTAMP:unknown}
 
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
 
-# JWT Configuration
-#app:
-#  jwt:
-#    secret: "mySecretKey123456789012345678901234567890"
-#    expiration: 86400000 # 24 hours
-#  cors:
-#    allowed-origins: "*"
-#        allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-#        allowed-headers: "*"
-#        allow-credentials: true
-#        max-age: 3600
-#  security:
-#    jwt:
-#          secret: "dGhpc0lzQVNlY3VyZUtleUZvckpXVFRva2VuR2VuZXJhdGlvbjEyMzQ1Njc4OTA="
-#          expiration: 86400 # 24 hours in seconds
-#          refresh-expiration: 604800 # 7 days in seconds
-#  business:
-#    commission:
-#          default-rate: 20.0
-#          max-rate: 30.0
-#  notification:
-#    email:
-#          enabled: true
-#        sms:
-#          enabled: false
+  # Development-specific database (if different)
+  datasource:
+    url: ${DEV_DATABASE_URL:jdbc:postgresql://localhost:5432/healthcare_mvp_dev}
+    username: ${DEV_DATABASE_USERNAME:healthcare_dev}
+    password: ${DEV_DATABASE_PASSWORD:dev_password}
 
+  # Development JPA settings
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
 
-# Custom Application Properties
-app:
-  cors:
-    allowed-origins: "*"
-    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-    allowed-headers: "*"
-    allow-credentials: true
-    max-age: 3600
-
-  security:
-    jwt:
-      secret: "ThisIsAVeryLongSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLong1234567890123456789"
-      expiration: 86400 # 24 hours in seconds
-      refresh-expiration: 604800 # 7 days in seconds
-
-  business:
-    commission:
-      default-rate: 20.0
-      max-rate: 30.0
-
-  notification:
-    email:
-      enabled: true
-    sms:
-      enabled: false
-
-# Local logging - more verbose
-#logging:
-#  level:
-#    com.healthcare.mvp: DEBUG
-#    org.springframework.security: DEBUG
-#    org.hibernate.SQL: DEBUG
-#    org.hibernate.type: TRACE
+# Development logging - more verbose
+logging:
+  level:
+    com.healthcare.mvp: DEBUG
+    com.healthcare.mvp.auth: TRACE
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type: TRACE
 
 ---
 # Production Profile
 spring:
-  mail:
-    host: smtp.example.com
-    port: 587
-    username: your-email@gmail.com
-    password: your-email-password
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          ssl:
-            enable: false
-
   config:
     activate:
       on-profile: prod
+
+  # Production security settings
+  security:
+    require-ssl: true
 
   # Production JPA settings
   jpa:
@@ -213,6 +208,13 @@ spring:
         format_sql: false
         use_sql_comments: false
 
+# Production CORS (more restrictive)
+app:
+  cors:
+    allowed-origins:
+      - "${PROD_FRONTEND_URL:https://yourdomain.com}"
+    allow-credentials: true
+
 # Production logging - less verbose
 logging:
   level:
@@ -220,5 +222,38 @@ logging:
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
     org.hibernate.type: WARN
+    root: WARN
   file:
     name: /var/log/healthcare-mvp/application.log
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  # Test database
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  # Test JWT settings (shorter expiration for testing)
+app:
+  security:
+    jwt:
+      expiration: 300 # 5 minutes for testing
+      refresh-expiration: 600 # 10 minutes for testing
+
+# Test logging
+logging:
+  level:
+    com.healthcare.mvp: DEBUG
+    org.springframework.security: DEBUG

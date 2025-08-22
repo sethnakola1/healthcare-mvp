@@ -8,8 +8,6 @@ import com.healthcare.mvp.business.repository.BusinessUserRepository;
 import com.healthcare.mvp.shared.exception.AuthenticationException;
 import com.healthcare.mvp.shared.util.JwtUtil;
 import com.healthcare.mvp.shared.security.SecurityUtils;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
@@ -20,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,8 +37,7 @@ public class AuthenticationService {
         log.info("Login attempt for email: {}", request.getEmail());
 
         try {
-            // Step 1: Find user
-            log.debug("Step 1: Looking up user by email: {}", request.getEmail());
+            // Step 1: Find and validate user
             BusinessUser user = businessUserRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> {
                         log.error("User not found for email: {}", request.getEmail());
@@ -54,90 +50,22 @@ public class AuthenticationService {
                     user.getLastName(),
                     user.getBusinessRole());
 
-            // Step 2: Check if account is active
-            log.debug("Step 2: Checking if account is active: {}", user.getIsActive());
-            if (!user.getIsActive()) {
-                log.warn("Login attempt for inactive account: {}", request.getEmail());
-                throw new AuthenticationException("Account is deactivated. Please contact support.");
-            }
+            // Step 2: Validate account status
+            validateAccountStatus(user, request.getEmail());
 
-            // Step 3: Check if account is locked
-            log.debug("Step 3: Checking account lock status");
-            if (user.getAccountLockedUntil() != null &&
-                user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
-                log.warn("Login attempt for locked account: {} (locked until: {})",
-                        request.getEmail(), user.getAccountLockedUntil());
-                throw new AuthenticationException("Account is temporarily locked. Please try again later.");
-            }
+            // Step 3: Validate password
+            validatePassword(request.getPassword(), user);
 
-            // Step 4: Validate password
-            log.debug("Step 4: Validating password");
-            String providedPassword = request.getPassword();
-            String storedHash = user.getPasswordHash();
+            // Step 4: Update login success data
+            updateLoginSuccess(user);
 
-            // Log hash prefix for debugging (safe to log first few chars)
-            log.debug("Stored hash prefix: {}",
-                    storedHash != null && storedHash.length() > 10 ?
-                    storedHash.substring(0, 10) + "..." : "NULL or SHORT");
-
-            // Check if hash is in BCrypt format
-            if (storedHash == null || !storedHash.startsWith("$2a$") && !storedHash.startsWith("$2b$")) {
-                log.error("Invalid password hash format for user: {}. Hash prefix: {}",
-                        request.getEmail(),
-                        storedHash != null && storedHash.length() > 3 ? storedHash.substring(0, 3) : "NULL");
-                throw new AuthenticationException("Account password configuration error. Please contact support.");
-            }
-
-            boolean passwordMatches = false;
-            try {
-                passwordMatches = passwordEncoder.matches(providedPassword, storedHash);
-                log.debug("Password match result: {}", passwordMatches);
-            } catch (Exception e) {
-                log.error("Error during password verification for user {}: {}",
-                        request.getEmail(), e.getMessage(), e);
-                throw new AuthenticationException("Password verification failed. Please contact support.");
-            }
-
-            if (!passwordMatches) {
-                log.warn("Invalid password for user: {}", request.getEmail());
-                handleFailedLogin(user);
-                throw new AuthenticationException("Invalid email or password");
-            }
-
-            // Step 5: Reset login attempts and update last login
-            log.debug("Step 5: Updating login success data");
-            user.setLoginAttempts(0);
-            user.setAccountLockedUntil(null);
-            user.setLastLogin(LocalDateTime.now());
-            businessUserRepository.save(user);
-
-            // Step 6: Generate tokens
-            log.debug("Step 6: Generating JWT tokens");
-            String role = user.getBusinessRole().name();
-            String accessToken = jwtUtil.generateToken(
-                user.getBusinessUserId().toString(),
-                user.getEmail(),
-                null,  // hospitalId - will be null for SUPER_ADMIN
-                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
-            );
-
-            String refreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId().toString());
+            // Step 5: Generate tokens
+            LoginResponse response = generateLoginResponse(user);
 
             log.info("=== LOGIN SUCCESS ===");
-            log.info("Successful login for user: {} with role: {}", request.getEmail(), role);
+            log.info("Successful login for user: {} with role: {}", request.getEmail(), user.getBusinessRole());
 
-            return LoginResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .tokenType("Bearer")
-                    .expiresIn(86400L)
-                    .userId(user.getBusinessUserId().toString())
-                    .email(user.getEmail())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .role(role)
-                    .loginTime(LocalDateTime.now())
-                    .build();
+            return response;
 
         } catch (AuthenticationException e) {
             log.error("=== LOGIN FAILED ===");
@@ -146,28 +74,100 @@ public class AuthenticationService {
         } catch (Exception e) {
             log.error("=== LOGIN ERROR ===");
             log.error("Unexpected error during login for email: {}", request.getEmail(), e);
-            log.error("Error type: {}", e.getClass().getName());
-            log.error("Error message: {}", e.getMessage());
-            log.error("Stack trace:", e);
-
-            // Check for specific database errors
-            if (e.getMessage() != null && e.getMessage().contains("connection")) {
-                throw new AuthenticationException("Database connection error. Please try again.");
-            }
-
             throw new AuthenticationException("Login failed. Please try again.");
         }
+    }
+
+    private void validateAccountStatus(BusinessUser user, String email) {
+        if (!user.getIsActive()) {
+            log.warn("Login attempt for inactive account: {}", email);
+            throw new AuthenticationException("Account is deactivated. Please contact support.");
+        }
+
+        if (user.getAccountLockedUntil() != null &&
+            user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+            log.warn("Login attempt for locked account: {} (locked until: {})",
+                    email, user.getAccountLockedUntil());
+            throw new AuthenticationException("Account is temporarily locked. Please try again later.");
+        }
+
+        if (!user.getEmailVerified()) {
+            log.warn("Login attempt for unverified email: {}", email);
+            throw new AuthenticationException("Please verify your email address before logging in.");
+        }
+    }
+
+    private void validatePassword(String providedPassword, BusinessUser user) {
+        String storedHash = user.getPasswordHash();
+
+        if (storedHash == null || (!storedHash.startsWith("$2a$") && !storedHash.startsWith("$2b$"))) {
+            log.error("Invalid password hash format for user: {}", user.getEmail());
+            throw new AuthenticationException("Account password configuration error. Please contact support.");
+        }
+
+        boolean passwordMatches;
+        try {
+            passwordMatches = passwordEncoder.matches(providedPassword, storedHash);
+            log.debug("Password match result: {}", passwordMatches);
+        } catch (Exception e) {
+            log.error("Error during password verification for user {}: {}", user.getEmail(), e.getMessage(), e);
+            throw new AuthenticationException("Password verification failed. Please contact support.");
+        }
+
+        if (!passwordMatches) {
+            log.warn("Invalid password for user: {}", user.getEmail());
+            handleFailedLogin(user);
+            throw new AuthenticationException("Invalid email or password");
+        }
+    }
+
+    private void updateLoginSuccess(BusinessUser user) {
+        user.setLoginAttempts(0);
+        user.setAccountLockedUntil(null);
+        user.setLastLogin(LocalDateTime.now());
+        businessUserRepository.save(user);
+    }
+
+    private LoginResponse generateLoginResponse(BusinessUser user) {
+        String role = user.getBusinessRole().name();
+        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
+        // Generate access token
+        String accessToken = jwtUtil.generateToken(
+            user.getBusinessUserId().toString(),
+            user.getEmail(),
+            null, // hospitalId - will be null for business users
+            authorities
+        );
+
+        // Generate refresh token
+        String refreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId().toString());
+
+        return LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(jwtUtil.getExpirationTimeInSeconds())
+                .userId(user.getBusinessUserId().toString())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(role)
+                .loginTime(LocalDateTime.now())
+                .build();
     }
 
     public LoginResponse refreshToken(RefreshTokenRequest request) {
         log.info("Token refresh attempt");
 
         try {
-            if (!jwtUtil.validateToken(request.getRefreshToken())) {
-                throw new AuthenticationException("Invalid refresh token");
+            String refreshToken = request.getRefreshToken();
+
+            if (!jwtUtil.validateToken(refreshToken)) {
+                throw new AuthenticationException("Invalid or expired refresh token");
             }
 
-            String userId = jwtUtil.getUserIdFromToken(request.getRefreshToken());
+            String userId = jwtUtil.getUserIdFromToken(refreshToken);
             BusinessUser user = businessUserRepository.findById(UUID.fromString(userId))
                     .orElseThrow(() -> new AuthenticationException("User not found"));
 
@@ -175,21 +175,24 @@ public class AuthenticationService {
                 throw new AuthenticationException("Account is deactivated");
             }
 
+            // Generate new access token
             String role = user.getBusinessRole().name();
+            List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
             String accessToken = jwtUtil.generateToken(
                 user.getBusinessUserId().toString(),
                 user.getEmail(),
                 null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                authorities
             );
 
             log.info("Token refreshed successfully for user: {}", user.getEmail());
 
             return LoginResponse.builder()
                     .accessToken(accessToken)
-                    .refreshToken(request.getRefreshToken())
+                    .refreshToken(refreshToken) // Keep the same refresh token
                     .tokenType("Bearer")
-                    .expiresIn(86400L)
+                    .expiresIn(jwtUtil.getExpirationTimeInSeconds())
                     .userId(user.getBusinessUserId().toString())
                     .email(user.getEmail())
                     .firstName(user.getFirstName())
@@ -256,16 +259,22 @@ public class AuthenticationService {
 
         // Generate secure reset token
         String resetToken = UUID.randomUUID().toString();
-//        user.setResetToken(resetToken);
-//        user.setResetTokenExpiry(System.currentTimeMillis() + 3600_000); // 1 hour expiry
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(System.currentTimeMillis() + 3600_000L); // 1 hour expiry
         businessUserRepository.save(user);
 
         // Send email
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(email);
-        message.setSubject("Password Reset Request");
-        message.setText("Click the link to reset your password: http://localhost:3000/reset-password?token=" + resetToken);
-        mailSender.send(message);
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject("Password Reset Request");
+            message.setText("Click the link to reset your password: http://localhost:3000/reset-password?token=" + resetToken);
+            mailSender.send(message);
+            log.info("Password reset email sent to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to: {}", email, e);
+            throw new RuntimeException("Failed to send password reset email");
+        }
     }
 
     public void confirmPasswordReset(String token, String newPassword) {
@@ -280,7 +289,10 @@ public class AuthenticationService {
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
+        user.setLoginAttempts(0);
+        user.setAccountLockedUntil(null);
         businessUserRepository.save(user);
-    }
 
+        log.info("Password reset successfully for user: {}", user.getEmail());
+    }
 }

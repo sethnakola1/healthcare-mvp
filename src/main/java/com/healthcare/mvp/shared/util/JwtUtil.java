@@ -2,6 +2,7 @@ package com.healthcare.mvp.shared.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healthcare.mvp.shared.exception.AuthenticationException;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -22,15 +23,16 @@ public class JwtUtil {
 
     private final SecretKey jwtSecret;
     private final int jwtExpirationMs;
+    private final int refreshExpirationMs;
     private final ObjectMapper objectMapper;
 
-    public JwtUtil(@Value("${app.jwt.secret:mySecretKey123456789012345678901234567890123456789012345678901234}") String secret,
-                   @Value("${app.jwt.expiration:86400000}") int expiration) {
+    public JwtUtil(@Value("${app.security.jwt.secret:ThisIsAVeryLongSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLong1234567890123456789}") String secret,
+                   @Value("${app.security.jwt.expiration:86400}") int expiration,
+                   @Value("${app.security.jwt.refresh-expiration:604800}") int refreshExpiration) {
 
-        // IMPORTANT: Ensure the secret is at least 64 bytes for HS512
+        // Ensure the secret is at least 64 bytes for HS512
         if (secret.length() < 64) {
             log.warn("JWT secret is too short for HS512 ({}), padding to 64 characters", secret.length());
-            // Pad the secret to 64 characters if it's too short
             StringBuilder sb = new StringBuilder(secret);
             while (sb.length() < 64) {
                 sb.append("0");
@@ -50,18 +52,20 @@ public class JwtUtil {
         }
 
         this.jwtSecret = Keys.hmacShaKeyFor(keyBytes);
-        this.jwtExpirationMs = expiration;
+        this.jwtExpirationMs = expiration * 1000; // Convert to milliseconds
+        this.refreshExpirationMs = refreshExpiration * 1000; // Convert to milliseconds
         this.objectMapper = new ObjectMapper();
 
-        log.info("JWT initialized with key size: {} bits", keyBytes.length * 8);
+        log.info("JWT initialized with key size: {} bits, expiration: {}ms", keyBytes.length * 8, this.jwtExpirationMs);
     }
 
     public String generateToken(String userId, String email, String hospitalId,
                               Collection<? extends GrantedAuthority> authorities) {
-        Date expiryDate = Date.from(Instant.now().plus(jwtExpirationMs, ChronoUnit.MILLIS));
+        Date expiryDate = Date.from(Instant.now().plusMillis(jwtExpirationMs));
 
         List<String> roles = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
+                .map(auth -> auth.startsWith("ROLE_") ? auth.substring(5) : auth)
                 .collect(Collectors.toList());
 
         Map<String, Object> claims = new HashMap<>();
@@ -71,85 +75,143 @@ public class JwtUtil {
         claims.put("roles", roles);
         claims.put("tokenType", "ACCESS_TOKEN");
 
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userId)
-                .setIssuedAt(new Date())
-                .setExpiration(expiryDate)
-                .signWith(jwtSecret, io.jsonwebtoken.Jwts.SIG.HS512)
-                .compact();
+        try {
+            String token = Jwts.builder()
+                    .setClaims(claims)
+                    .setSubject(userId)
+                    .setIssuedAt(new Date())
+                    .setExpiration(expiryDate)
+                    .setIssuer("healthcare-mvp")
+                    .setAudience("healthcare-app")
+                    .signWith(jwtSecret)
+                    .compact();
+
+            log.debug("Generated JWT token for user: {} with roles: {}", email, roles);
+            return token;
+
+        } catch (Exception e) {
+            log.error("Failed to generate JWT token for user: {}", userId, e);
+            throw new AuthenticationException("Failed to generate authentication token");
+        }
     }
 
     public String generateRefreshToken(String userId) {
-        Date expiryDate = Date.from(Instant.now().plus(jwtExpirationMs * 7, ChronoUnit.MILLIS)); // 7 days
+        Date expiryDate = Date.from(Instant.now().plusMillis(refreshExpirationMs));
 
-        return Jwts.builder()
-                .setSubject(userId)
-                .claim("tokenType", "REFRESH_TOKEN")
-                .setIssuedAt(new Date())
-                .setExpiration(expiryDate)
-                .signWith(jwtSecret, io.jsonwebtoken.Jwts.SIG.HS512)
-                .compact();
+        try {
+            return Jwts.builder()
+                    .setSubject(userId)
+                    .claim("tokenType", "REFRESH_TOKEN")
+                    .setIssuedAt(new Date())
+                    .setExpiration(expiryDate)
+                    .setIssuer("healthcare-mvp")
+                    .setAudience("healthcare-app")
+                    .signWith(jwtSecret)
+                    .compact();
+        } catch (Exception e) {
+            log.error("Failed to generate refresh token for user: {}", userId, e);
+            throw new AuthenticationException("Failed to generate refresh token");
+        }
     }
 
-    public Map<String, Object> getClaimsFromToken(String token) {
+    public Claims getClaimsFromToken(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(jwtSecret)
+                    .requireIssuer("healthcare-mvp")
+                    .requireAudience("healthcare-app")
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (Exception e) {
             log.error("Invalid JWT token: {}", e.getMessage());
-            throw new AuthenticationException("Invalid JWT token");
+            throw new AuthenticationException("Invalid JWT token: " + e.getMessage());
         }
     }
 
     public String getUserIdFromToken(String token) {
-        Map<String, Object> claims = getClaimsFromToken(token);
-        return (String) claims.get("sub");
+        Claims claims = getClaimsFromToken(token);
+        return claims.getSubject();
     }
 
     public String getEmailFromToken(String token) {
-        Map<String, Object> claims = getClaimsFromToken(token);
-        return (String) claims.get("email");
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("email", String.class);
     }
 
     public String getHospitalIdFromToken(String token) {
-        Map<String, Object> claims = getClaimsFromToken(token);
-        return (String) claims.get("hospitalId");
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("hospitalId", String.class);
     }
 
     @SuppressWarnings("unchecked")
     public List<String> getRolesFromToken(String token) {
-        Map<String, Object> claims = getClaimsFromToken(token);
-        return (List<String>) claims.get("roles");
+        Claims claims = getClaimsFromToken(token);
+        Object rolesObj = claims.get("roles");
+
+        if (rolesObj instanceof List) {
+            return (List<String>) rolesObj;
+        } else if (rolesObj instanceof String) {
+            return Arrays.asList(((String) rolesObj).split(","));
+        }
+
+        return new ArrayList<>();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
+            Claims claims = Jwts.parser()
                     .verifyWith(jwtSecret)
+                    .requireIssuer("healthcare-mvp")
+                    .requireAudience("healthcare-app")
                     .build()
-                    .parseSignedClaims(token);
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            // Additional validation
+            if (claims.getExpiration().before(new Date())) {
+                log.debug("Token is expired");
+                return false;
+            }
+
+            String tokenType = claims.get("tokenType", String.class);
+            if (!"ACCESS_TOKEN".equals(tokenType) && !"REFRESH_TOKEN".equals(tokenType)) {
+                log.debug("Invalid token type: {}", tokenType);
+                return false;
+            }
+
+            log.debug("Token validation successful for user: {}", claims.getSubject());
             return true;
+
         } catch (Exception ex) {
-            log.error("Invalid JWT token: {}", ex.getMessage());
+            log.debug("Token validation failed: {}", ex.getMessage());
             return false;
         }
     }
 
     public boolean isTokenExpired(String token) {
         try {
-            Map<String, Object> claims = getClaimsFromToken(token);
-            return ((Date) claims.get("exp")).before(new Date());
+            Claims claims = getClaimsFromToken(token);
+            return claims.getExpiration().before(new Date());
         } catch (Exception e) {
+            log.debug("Error checking token expiration: {}", e.getMessage());
             return true;
         }
     }
 
     public Date getExpirationDateFromToken(String token) {
-        Map<String, Object> claims = getClaimsFromToken(token);
-        return (Date) claims.get("exp");
+        Claims claims = getClaimsFromToken(token);
+        return claims.getExpiration();
+    }
+
+    public long getExpirationTimeInSeconds() {
+        return jwtExpirationMs / 1000;
+    }
+
+    public String extractTokenFromHeader(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }
