@@ -38,12 +38,12 @@ public class JpaConfig {
      * Simple auditor implementation
      * In production, this should get the current user from security context
      */
-    public static class AuditorAwareImpl implements AuditorAware<UUID> {
-        @Override
-        public Optional<UUID> getCurrentAuditor() {
-            // For now, return a default UUID
-            // In production, extract from JWT token or security context
-            return Optional.of(UUID.fromString("00000000-0000-0000-0000-000000000000"));
-        }
-    }
+//    public static class AuditorAwareImpl implements AuditorAware<UUID> {
+//        @Override
+//        public Optional<UUID> getCurrentAuditor() {
+//            // For now, return a default UUID
+//            // In production, extract from JWT token or security context
+//            return Optional.of(UUID.fromString("00000000-0000-0000-0000-000000000000"));
+//        }
+//    }
 }

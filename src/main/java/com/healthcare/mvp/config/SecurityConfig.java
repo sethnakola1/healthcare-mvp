@@ -18,12 +18,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * SIMPLIFIED Security configuration with method-level authorization
@@ -41,24 +38,25 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+    private final CorsConfigurationSource corsConfigurationSource; // Injected from CorsConfig
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource)) // Use injected source
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints - FIXED: Make health check public
+                // Public endpoints
                 .requestMatchers(
                     "/api/auth/login",
-                    "/api/admin/users/reset-password",
                     "/api/auth/refresh",
                     "/api/auth/health",
+                    "/api/auth/register",
+                    "/api/auth/registration/**",
                     "/api/business/super-admin/initialize",
-//                    "/api/auth/register",                     // ADD THIS
-//                    "/api/auth/registration/**",             // ADD THIS
-                    "/api/debug/**",                        // ADD THIS LINE
+                    "/api/admin/users/reset-password",
+                    "/api/debug/**",
                     "/actuator/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
@@ -81,8 +79,9 @@ public class SecurityConfig {
                 // Billing endpoints
                 .requestMatchers("/api/billing/**").hasAnyRole("HOSPITAL_ADMIN", "BILLING_STAFF", "RECEPTIONIST")
 
-                    // --- NEW: Secure Admin-only endpoints ---
-                    .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
+                // Admin-only endpoints
+                .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
+
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
@@ -118,22 +117,6 @@ public class SecurityConfig {
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-//        configuration.setAllowedOrigins(Arrays.asList("https://your-frontend.com", "http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 
     @Bean
