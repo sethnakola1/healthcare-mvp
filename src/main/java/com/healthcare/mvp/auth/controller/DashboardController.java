@@ -7,7 +7,6 @@ import com.healthcare.mvp.business.service.BusinessUserService;
 import com.healthcare.mvp.shared.constants.BusinessRole;
 import com.healthcare.mvp.shared.dto.BaseResponse;
 import com.healthcare.mvp.shared.security.AuthenticationDetails;
-import com.healthcare.mvp.shared.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -61,7 +60,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching dashboard data", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch dashboard data: " + e.getMessage())
+                BaseResponse.error("Failed to fetch dashboard data: " + e.getMessage(), null)
             );
         }
     }
@@ -85,7 +84,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching Super Admin dashboard", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch Super Admin dashboard: " + e.getMessage())
+                BaseResponse.error("Failed to fetch Super Admin dashboard: " + e.getMessage(), null)
             );
         }
     }
@@ -107,7 +106,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching analytics data", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch analytics: " + e.getMessage())
+                BaseResponse.error("Failed to fetch analytics: " + e.getMessage(), type)
             );
         }
     }
@@ -128,7 +127,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching recent activities", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch activities: " + e.getMessage())
+                BaseResponse.error("Failed to fetch activities: " + e.getMessage(), null)
             );
         }
     }

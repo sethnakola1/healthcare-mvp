@@ -1,4 +1,4 @@
-package com.healthcare.mvp.patient;
+    package com.healthcare.mvp.patient.controller;
 
-public class controller {
-}
+    public class controller {
+    }

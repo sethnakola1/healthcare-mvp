@@ -57,7 +57,7 @@ public class DebugController {
             if (users.isEmpty()) {
                 log.error("No user found with email: {}", email);
                 result.put("error", "User not found");
-                return ResponseEntity.ok(BaseResponse.error("User not found"));
+                return ResponseEntity.ok(BaseResponse.error("User not found", newPassword));
             }
 
             if (users.size() > 1) {
@@ -99,7 +99,7 @@ public class DebugController {
             if (!hashVerifies) {
                 log.error("Generated hash doesn't verify!");
                 result.put("error", "Password encoding failed");
-                return ResponseEntity.ok(BaseResponse.error("Password encoding failed"));
+                return ResponseEntity.ok(BaseResponse.error("Password encoding failed", newHash));
             }
 
             user.setPasswordHash(newHash);
@@ -122,7 +122,7 @@ public class DebugController {
             if (verifyUser == null) {
                 log.error("User not found after save!");
                 result.put("error", "Save verification failed");
-                return ResponseEntity.ok(BaseResponse.error("Save verification failed"));
+                return ResponseEntity.ok(BaseResponse.error("Save verification failed", newHash));
             }
 
             // Verify password works on saved user
@@ -158,7 +158,7 @@ public class DebugController {
             log.error("Failed to fix super admin", e);
             result.put("error", e.getMessage());
             result.put("errorType", e.getClass().getSimpleName());
-            return ResponseEntity.ok(BaseResponse.error("Fix failed: " + e.getMessage()));
+            return ResponseEntity.ok(BaseResponse.error("Fix failed: " + e.getMessage(), null));
         }
     }
 
@@ -249,7 +249,7 @@ public class DebugController {
         } catch (Exception e) {
             log.error("Diagnostics failed", e);
             diagnostics.put("error", e.getMessage());
-            return ResponseEntity.ok(BaseResponse.error("Diagnostics failed: " + e.getMessage()));
+            return ResponseEntity.ok(BaseResponse.error("Diagnostics failed: " + e.getMessage(), null));
         }
     }
     
@@ -291,7 +291,7 @@ public class DebugController {
         } catch (Exception e) {
             log.error("Password test failed", e);
             result.put("error", e.getMessage());
-            return ResponseEntity.ok(BaseResponse.error("Test failed: " + e.getMessage()));
+            return ResponseEntity.ok(BaseResponse.error("Test failed: " + e.getMessage(), password));
         }
     }
 }

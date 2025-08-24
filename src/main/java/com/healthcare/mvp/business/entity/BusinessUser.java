@@ -18,6 +18,8 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 public class BusinessUser extends LegacyBaseEntity {
 
+    public static final String BusinessRole = null;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "business_user_id")

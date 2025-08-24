@@ -1,6 +1,5 @@
 package com.healthcare.mvp.hospital.service;
 
-import com.healthcare.mvp.business.entity.BusinessUser;
 import com.healthcare.mvp.hospital.dto.CreateHospitalRequest;
 import com.healthcare.mvp.hospital.dto.HospitalDto;
 import com.healthcare.mvp.hospital.entity.Hospital;

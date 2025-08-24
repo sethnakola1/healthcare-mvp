@@ -6,7 +6,6 @@ import com.healthcare.mvp.patient.dto.CreatePatientRequest;
 import com.healthcare.mvp.patient.dto.PatientDto;
 import com.healthcare.mvp.patient.entity.Patient;
 import com.healthcare.mvp.patient.repository.PatientRepository;
-import com.healthcare.mvp.user.entity.Users;
 import com.healthcare.mvp.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;

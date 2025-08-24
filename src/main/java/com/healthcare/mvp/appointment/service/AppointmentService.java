@@ -4,8 +4,6 @@ import com.healthcare.mvp.appointment.dto.AppointmentDto;
 import com.healthcare.mvp.appointment.dto.CreateAppointmentRequest;
 import com.healthcare.mvp.appointment.entity.Appointment;
 import com.healthcare.mvp.appointment.repository.AppointmentRepository;
-import com.healthcare.mvp.doctor.entity.Doctor;
-import com.healthcare.mvp.doctor.repository.DoctorRepository;
 import com.healthcare.mvp.hospital.entity.Hospital;
 import com.healthcare.mvp.hospital.repository.HospitalRepository;
 import com.healthcare.mvp.patient.entity.Patient;

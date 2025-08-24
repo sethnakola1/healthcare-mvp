@@ -3,6 +3,7 @@ package com.healthcare.mvp.shared.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -132,5 +133,10 @@ public class JwtUtil {
         } catch (Exception e) {
             return true;
         }
+    }
+
+    public String getJwtFromRequest(HttpServletRequest request) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getJwtFromRequest'");
     }
 }
