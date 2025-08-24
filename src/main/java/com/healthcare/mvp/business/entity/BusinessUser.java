@@ -24,7 +24,6 @@ public class BusinessUser extends LegacyBaseEntity {
     private UUID businessUserId;
 
     @Column(name = "cognito_user_id",
-//            nullable = false,
             unique = true)
     private String cognitoUserId;
 
@@ -56,9 +55,7 @@ public class BusinessUser extends LegacyBaseEntity {
     @Column(name = "partner_code", nullable = false, unique = true)
     private String partnerCode;
 
-    @Column(name = "commission_percentage"
-//            , precision = 5, scale = 2
-    )
+    @Column(name = "commission_percentage")
     @Builder.Default
     private BigDecimal commissionPercentage = new BigDecimal("20.00");
 
@@ -73,9 +70,7 @@ public class BusinessUser extends LegacyBaseEntity {
     @Builder.Default
     private Integer totalHospitalsBrought = 0;
 
-    @Column(name = "total_commission_earned"
-//            , precision = 12, scale = 2
-    )
+    @Column(name = "total_commission_earned")
     @Builder.Default
     private BigDecimal totalCommissionEarned = BigDecimal.ZERO;
 
@@ -93,16 +88,9 @@ public class BusinessUser extends LegacyBaseEntity {
     @Column(name = "account_locked_until")
     private LocalDateTime accountLockedUntil;
 
-    private String resetToken;
+    private String passwordResetToken;
 
-    private Long resetTokenExpiry;
-
-//    ResetToken
-
-    // REMOVED: Duplicate isActive field - inherited from LegacyBaseEntity
-    // @Column(name = "is_active", nullable = false)
-    // @Builder.Default
-    // private Boolean isActive = true;
+    private LocalDateTime passwordResetTokenExpiry;
 
     public BusinessUser(String firstName, String lastName, String email, String username,
                         BusinessRole businessRole, String cognitoUserId) {
@@ -117,15 +105,10 @@ public class BusinessUser extends LegacyBaseEntity {
         this.commissionPercentage = new BigDecimal("20.00");
         this.totalHospitalsBrought = 0;
         this.totalCommissionEarned = BigDecimal.ZERO;
-        // REMOVED: this.isActive = true; // Handled by LegacyBaseEntity
     }
 
     public String getFullName() {
         return firstName + " " + lastName;
-    }
-
-    public boolean isAccountLocked() {
-        return accountLockedUntil != null && accountLockedUntil.isAfter(LocalDateTime.now());
     }
 
     @PrePersist

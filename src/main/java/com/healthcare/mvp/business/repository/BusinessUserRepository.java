@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,12 +82,13 @@ public interface BusinessUserRepository extends JpaRepository<BusinessUser, UUID
     long countActiveUsersByRole(@Param("role") BusinessRole role);
 
     /**
-     * Finds a BusinessUser by their reset token.
+     * Finds a BusinessUser by their password reset token, but only if the token has not expired.
      *
-     * @param resetToken The reset token associated with the user.
-     * @return An Optional containing the BusinessUser if found, or empty if not found.
+     * @param passwordResetToken The password reset token associated with the user.
+     * @param now The current time.
+     * @return An Optional containing the BusinessUser if found and the token is valid, or empty otherwise.
      */
-    Optional<BusinessUser> findByResetToken(String resetToken);
+    Optional<BusinessUser> findByPasswordResetTokenAndPasswordResetTokenExpiryAfter(String passwordResetToken, LocalDateTime now);
 
 
     @Modifying
