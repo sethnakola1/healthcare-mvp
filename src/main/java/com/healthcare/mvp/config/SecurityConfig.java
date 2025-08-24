@@ -115,6 +115,13 @@ public class SecurityConfig {
                     response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
                 })
             )
+            .headers(headers -> headers
+                .xssProtection(xss -> xss.headerValue(org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';"))
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(withDefaults())
+                // .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true).preload(true)) // Enable this in production when HTTPS is enforced
+            )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
     }
