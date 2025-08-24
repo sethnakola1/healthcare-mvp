@@ -497,16 +497,19 @@ public class AuthenticationService {
      * For this implementation, we will log the logout event. The frontend is responsible
      * for deleting the tokens from storage.
      */
-    public void logout() {
+    public void logout(HttpServletRequest request) {
         try {
+            String jwt = jwtUtil.getJwtFromRequest(request);
+            if (StringUtils.hasText(jwt)) {
+                String jti = jwtUtil.getJtiFromToken(jwt);
+                Date expiration = jwtUtil.getExpirationDateFromToken(jwt);
+                jwtBlocklistService.blocklist(jti, expiration);
+                log.info("Token {} blocklisted successfully.", jti);
+            }
+
             BusinessUser user = getCurrentUser();
             log.info("User {} logging out.", user.getEmail());
             auditLogger.logAuthenticationEvent(user.getBusinessUserId().toString(), user.getEmail(), "LOGOUT", true);
-            // To implement a denylist:
-            // 1. Extract the token from the SecurityContext.
-            // 2. Add the token's JTI (unique identifier) to a cache (e.g., Redis) with a TTL
-            //    equal to the token's remaining validity.
-            // 3. Clear the security context.
             SecurityContextHolder.clearContext();
         } catch (AuthenticationException e) {
             log.warn("Logout attempt by unauthenticated user.");
