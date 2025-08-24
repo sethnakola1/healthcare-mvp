@@ -1,5 +1,6 @@
 package com.healthcare.mvp.shared.util;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -26,13 +27,12 @@ public class JwtUtil {
                    @Value("${app.security.jwt.expiration:86400}") int expiration,
                    @Value("${app.security.jwt.refresh-expiration:604800}") int refreshExpiration) {
 
-        // Validate secret length for HS512 (minimum 64 bytes)
         if (secret.length() < 64) {
             throw new IllegalArgumentException("JWT secret must be at least 64 characters for HS512 algorithm");
         }
 
         this.jwtSecret = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.jwtExpirationMs = expiration * 1000; // Convert to milliseconds
+        this.jwtExpirationMs = expiration * 1000;
         this.refreshExpirationMs = refreshExpiration * 1000;
 
         log.info("JWT initialized with HS512 algorithm");
@@ -73,6 +73,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userId)
+                .setId(UUID.randomUUID().toString()) // Add JTI
                 .setIssuedAt(new Date())
                 .setExpiration(expiryDate)
                 .signWith(jwtSecret, Jwts.SIG.HS512)
@@ -92,7 +93,7 @@ public class JwtUtil {
         }
     }
 
-    public Map<String, Object> getClaimsFromToken(String token) {
+    private Claims getClaimsFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(jwtSecret)
                 .build()
@@ -101,27 +102,33 @@ public class JwtUtil {
     }
 
     public String getUserIdFromToken(String token) {
-        return (String) getClaimsFromToken(token).get("sub");
+        return getClaimsFromToken(token).getSubject();
+    }
+
+    public String getJtiFromToken(String token) {
+        return getClaimsFromToken(token).getId();
+    }
+
+    public Date getExpirationDateFromToken(String token) {
+        return getClaimsFromToken(token).getExpiration();
     }
 
     public String getEmailFromToken(String token) {
-        return (String) getClaimsFromToken(token).get("email");
+        return getClaimsFromToken(token).get("email", String.class);
     }
 
     public String getHospitalIdFromToken(String token) {
-        return (String) getClaimsFromToken(token).get("hospitalId");
+        return getClaimsFromToken(token).get("hospitalId", String.class);
     }
 
     @SuppressWarnings("unchecked")
     public List<String> getRolesFromToken(String token) {
-        Object roles = getClaimsFromToken(token).get("roles");
-        return roles != null ? (List<String>) roles : Collections.emptyList();
+        return getClaimsFromToken(token).get("roles", List.class);
     }
 
     public boolean isTokenExpired(String token) {
         try {
-            Date expiration = (Date) getClaimsFromToken(token).get("exp");
-            return expiration.before(new Date());
+            return getExpirationDateFromToken(token).before(new Date());
         } catch (Exception e) {
             return true;
         }

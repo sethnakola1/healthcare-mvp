@@ -1,6 +1,7 @@
 package com.healthcare.mvp.shared.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.healthcare.mvp.auth.service.JwtBlocklistService;
 import com.healthcare.mvp.shared.dto.BaseResponse;
 import com.healthcare.mvp.shared.util.JwtUtil;
 import jakarta.servlet.FilterChain;
@@ -30,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
+    private final JwtBlocklistService jwtBlocklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
@@ -39,6 +41,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
             
             if (StringUtils.hasText(jwt) && jwtUtil.validateToken(jwt)) {
+                String jti = jwtUtil.getJtiFromToken(jwt);
+                if (jwtBlocklistService.isBlocklisted(jti)) {
+                    log.warn("Attempt to use blocklisted token: {}", jti);
+                    handleAuthenticationError(response, "Token has been logged out");
+                    return;
+                }
+
                 String userId = jwtUtil.getUserIdFromToken(jwt);
                 String email = jwtUtil.getEmailFromToken(jwt);
                 String hospitalId = jwtUtil.getHospitalIdFromToken(jwt);

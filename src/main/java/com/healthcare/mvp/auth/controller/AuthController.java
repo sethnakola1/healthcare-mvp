@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -146,12 +147,12 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "User Logout", description = "Logout user and invalidate session")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BaseResponse<String>> logout() {
+    public ResponseEntity<BaseResponse<String>> logout(HttpServletRequest request) {
         String currentUserId = SecurityUtils.getCurrentUserId();
         log.info("Logout request received for user: {}", currentUserId);
 
         try {
-            authenticationService.logout();
+            authenticationService.logout(request);
             return ResponseEntity.ok(
                 BaseResponse.success("Logout successful", "User logged out successfully")
             );

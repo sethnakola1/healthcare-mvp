@@ -24,6 +24,12 @@ spring:
           ssl:
             enable: false
 
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   # Database Configuration
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://healthhorizon-db.cy5cs4aqyhju.us-east-1.rds.amazonaws.com:5432/healthcare_mvp_db}
@@ -99,6 +105,8 @@ app:
       secret: ${JWT_SECRET:ThisIsAVeryLongSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLong1234567890123456789}
       expiration: ${JWT_EXPIRATION:86400} # 24 hours in seconds
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800} # 7 days in seconds
+      blocklist:
+        enabled: true
 
   # Business Configuration
   business:
