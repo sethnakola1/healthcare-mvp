@@ -79,6 +79,10 @@ public class JwtUtil {
         return getClaimFromToken(token, claims -> claims.get("userId", String.class));
     }
 
+    public String getEmailFromToken(String token){
+        return getClaimFromToken(token, claims -> claims.get("userId", String.class));
+    }
+
     public String getRoleFromToken(String token) {
         return getClaimFromToken(token, claims -> claims.get("role", String.class));
     }
@@ -128,5 +132,9 @@ public class JwtUtil {
             log.error("Refresh token validation failed: {}", e.getMessage());
             return false;
         }
+    }
+
+    public Long getJwtExpirationMs() {
+        return jwtExpirationMs;
     }
 }

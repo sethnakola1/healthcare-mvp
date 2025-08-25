@@ -82,6 +82,19 @@ healthcare:
 
   # Security Configuration
   security:
+    jwt:
+      secret: "ThisIsAVeryLongSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLong1234567890123456789"
+      expiration: 86400 # 24 hours in seconds
+      refresh-expiration: 604800 # 7 days in seconds
+
+    # Token blocklist configuration
+    token-blocklist:
+      enabled: true
+      cleanup-enabled: true
+      cleanup-cron: "0 0 2 * * ?" # Daily at 2 AM
+      max-blocked-tokens: 10000
+      retention-days: 30
+
     cors:
       allowed-origins:
         - http://localhost:3000
@@ -156,6 +169,12 @@ info:
 ---
 # Development Profile
 spring:
+
+  task:
+    scheduling:
+      enabled: true
+      pool:
+        size: 2
   config:
     activate:
       on-profile: dev
@@ -166,13 +185,23 @@ spring:
     username: ${DEV_DATABASE_USERNAME:healthcare_dev}
     password: ${DEV_DATABASE_PASSWORD:dev_password}
 
-  # Development JPA settings
+  # JPA settings for token blocklist table
   jpa:
-    show-sql: true
+    hibernate:
+      ddl-auto: update
     properties:
       hibernate:
-        format_sql: true
-        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  # Development JPA settings
+#  jpa:
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
+#        use_sql_comments: true
 
 # Development logging - more verbose
 logging:

@@ -3,12 +3,14 @@ package com.healthcare.mvp.auth.controller;
 import com.healthcare.mvp.auth.dto.*;
 import com.healthcare.mvp.auth.service.AuthenticationService;
 import com.healthcare.mvp.business.entity.BusinessUser;
-import com.healthcare.mvp.business.repository.BusinessUserRepository;
 import com.healthcare.mvp.shared.dto.BaseResponse;
 import com.healthcare.mvp.shared.security.service.RefreshTokenService;
 import com.healthcare.mvp.shared.security.service.TokenBlocklistService;
 import com.healthcare.mvp.shared.util.JwtUtil;
 import com.healthcare.mvp.shared.util.SecurityUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +38,8 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final TokenBlocklistService tokenBlocklistService;
+    private final AuthenticationService authenticationService;
+    private final UserDetailsService userDetailsService;
 
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<LoginResponse>> login(
@@ -65,16 +70,17 @@ public class AuthController {
             String accessToken = jwtUtil.generateAccessToken(userDetails, userId, role);
             var refreshToken = refreshTokenService.createRefreshToken(userId, deviceFingerprint, ipAddress);
 
-            LoginResponse response = LoginResponse.builder()
+
+        LoginResponse response = LoginResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(refreshToken.getToken())
                     .tokenType("Bearer")
                     .expiresIn(jwtUtil.getJwtExpirationMs())
-                    .user(UserInfo.builder()
-                            .id(userId)
-                            .username(userDetails.getUsername())
-                            .role(role)
-                            .build())
+//                    .user(UserInfo.builder()
+//                            .id(userId)
+//                            .username(userDetails.getUsername())
+//                            .role(role)
+//                            .build())
                     .build();
 
             log.info("User {} logged in successfully from IP: {}", loginRequest.getUsername(), ipAddress);
@@ -84,45 +90,65 @@ public class AuthController {
 
     }
 
+//    @PostMapping("/refresh")
+//    public ResponseEntity<BaseResponse<RefreshResponse>> refreshToken(
+//            @Valid @RequestBody RefreshTokenRequest refreshRequest,
+//            HttpServletRequest request) {
+//
+//        try {
+//            String ipAddress = SecurityUtils.getClientIpAddress(request);
+//            String deviceFingerprint = SecurityUtils.generateDeviceFingerprint(request);
+//
+//            var oldRefreshToken = refreshTokenService.findByToken(refreshRequest.getRefreshToken());
+//
+//            // Rotate the refresh token
+//            var newRefreshToken = refreshTokenService.rotateRefreshToken(
+//                    oldRefreshToken, deviceFingerprint, ipAddress);
+//
+//            // Generate new access token
+//            String newAccessToken = jwtUtil.generateAccessToken(
+//                    loadUserFromToken(oldRefreshToken.getUserId()),
+//                    oldRefreshToken.getUserId(),
+//                    getUserRole(oldRefreshToken.getUserId()));
+//
+//            RefreshResponse response = RefreshResponse.builder()
+//                    .accessToken(newAccessToken)
+//                    .refreshToken(newRefreshToken.getToken())
+//                    .tokenType("Bearer")
+//                    .expiresIn(jwtUtil.getJwtExpirationMs())
+//                    .build();
+//
+//            return ResponseEntity.ok(BaseResponse.success(response));
+//
+//        } catch (Exception e) {
+//            log.error("Token refresh failed", e);
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                    .body(BaseResponse.error("Invalid refresh token", 401));
+//        }
+//    }
+
     @PostMapping("/refresh")
-    public ResponseEntity<BaseResponse<RefreshResponse>> refreshToken(
-            @Valid @RequestBody RefreshTokenRequest refreshRequest,
-            HttpServletRequest request) {
+    @Operation(summary = "Refresh Token", description = "Generate new access token using refresh token")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Token refreshed successfully"),
+            @ApiResponse(responseCode = "401", description = "Invalid refresh token")
+    })
+    public ResponseEntity<BaseResponse<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        log.info("Token refresh request received");
 
         try {
-            String ipAddress = SecurityUtils.getClientIpAddress(request);
-            String deviceFingerprint = SecurityUtils.generateDeviceFingerprint(request);
 
-            var oldRefreshToken = refreshTokenService.findByToken(refreshRequest.getRefreshToken());
-
-            // Rotate the refresh token
-            var newRefreshToken = refreshTokenService.rotateRefreshToken(
-                    oldRefreshToken, deviceFingerprint, ipAddress);
-
-            // Generate new access token
-            String newAccessToken = jwtUtil.generateAccessToken(
-                    loadUserFromToken(oldRefreshToken.getUserId()),
-                    oldRefreshToken.getUserId(),
-                    getUserRole(oldRefreshToken.getUserId()));
-
-            RefreshResponse response = RefreshResponse.builder()
-                    .accessToken(newAccessToken)
-                    .refreshToken(newRefreshToken.getToken())
-                    .tokenType("Bearer")
-                    .expiresIn(jwtUtil.getJwtExpirationMs())
-                    .build();
-
-            return ResponseEntity.ok(BaseResponse.success(response));
-
+            LoginResponse response = authenticationService.refreshToken(request);
+            return ResponseEntity.ok(BaseResponse.success("Token refreshed successfully", response));
         } catch (Exception e) {
-            log.error("Token refresh failed", e);
+            log.error("Token refresh failed: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(BaseResponse.error("Invalid refresh token", 401));
+                    .body(BaseResponse.error("TOKEN_REFRESH_FAILED", "Invalid or expired refresh token"));
         }
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<BaseResponse<Object>> logout(
+    public ResponseEntity<BaseResponse<Void>> logout(
             HttpServletRequest request) {
 
         try {
@@ -149,17 +175,21 @@ public class AuthController {
     // Helper methods would be implemented here
     private UUID getUserIdFromUserDetails(UserDetails userDetails) {
         // Implementation depends on your UserDetails implementation
-        return UUID.randomUUID(); // Placeholder
+        if (userDetails instanceof BusinessUser) {
+            return ((BusinessUser) userDetails).getId();
+        }
+        return null; // Or throw an exception if ID is always expected
     }
 
     private String getUserRoleFromUserDetails(UserDetails userDetails) {
         // Implementation depends on your UserDetails implementation
-        return "USER"; // Placeholder
+        return userDetails.getAuthorities().stream().findFirst().map(Object::toString).orElse("USER");
     }
 
     private UserDetails loadUserFromToken(UUID userId) {
-        // Load user details by ID
-        return null; // Placeholder
+        // This method is not directly used in the provided code snippet, but if it were,
+        // it would typically load user details from a service using the userId.
+        return userDetailsService.loadUserByUsername(userId.toString()); // Assuming username is userId for simplicity
     }
 
     // DTOs

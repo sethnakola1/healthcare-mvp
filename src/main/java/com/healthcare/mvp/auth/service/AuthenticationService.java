@@ -7,7 +7,9 @@ import com.healthcare.mvp.business.entity.BusinessUser;
 import com.healthcare.mvp.business.repository.BusinessUserRepository;
 import com.healthcare.mvp.shared.audit.AuditLogger;
 import com.healthcare.mvp.shared.exception.AuthenticationException;
+import com.healthcare.mvp.shared.security.AuthenticationDetails;
 import com.healthcare.mvp.shared.util.JwtUtil;
+import com.healthcare.mvp.shared.util.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
+import com.healthcare.mvp.shared.security.service.TokenBlocklistService;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -41,6 +44,7 @@ public class AuthenticationService {
     private final JwtUtil jwtUtil;
     private final AuditLogger auditLogger;
     private final JwtBlocklistService jwtBlocklistService;
+    private final TokenBlocklistService tokenBlocklistService;
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int LOCKOUT_MINUTES = 30;
@@ -58,7 +62,7 @@ public class AuthenticationService {
             // Successful login
             updateSuccessfulLogin(user);
             String accessToken = generateAccessToken(user);
-            String refreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId().toString());
+            String refreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId(), user.getEmail());
 
             auditLogger.logAuthenticationEvent(
                 user.getBusinessUserId().toString(),
@@ -99,7 +103,7 @@ public class AuthenticationService {
 
     public LoginResponse refreshToken(RefreshTokenRequest request) {
         try {
-            if (!jwtUtil.validateToken(request.getRefreshToken())) {
+            if (!jwtUtil.validateToken(request.getRefreshToken(), null)) {
                 throw new AuthenticationException("Invalid refresh token");
             }
 
@@ -112,7 +116,7 @@ public class AuthenticationService {
             }
 
             String accessToken = generateAccessToken(user);
-            String newRefreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId().toString());
+            String newRefreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId(), user.getEmail());
 
             return LoginResponse.builder()
                     .accessToken(accessToken)
@@ -292,5 +296,64 @@ public class AuthenticationService {
         String email = authentication.getName();
         return businessUserRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationException("Authenticated user not found in database. Please contact support."));
+    }
+
+
+    public void logout() {
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+
+        if (currentUserId != null) {
+            try {
+                // Get the current JWT token from request context if available
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                if (authentication != null && authentication.getDetails() instanceof AuthenticationDetails) {
+                    // In a real implementation, you'd extract the actual JWT token from the request
+                    // For now, we'll log the logout event
+                    log.info("User logged out: {} ({})", currentUserEmail, currentUserId);
+
+                    // Optional: Block all user tokens on logout for enhanced security
+                    // Uncomment the next line if you want to invalidate all user tokens on logout
+                    // tokenBlocklistService.blockAllUserTokens(UUID.fromString(currentUserId), "User logout");
+                }
+            } catch (Exception e) {
+                log.error("Error during logout process for user {}: {}", currentUserId, e.getMessage());
+            }
+        }
+
+        // Clear security context
+        SecurityContextHolder.clearContext();
+    }
+
+    /**
+     * Logout with token blacklisting (when you have the actual token)
+     */
+    public void logoutWithToken(String accessToken, String refreshToken) {
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+
+        if (currentUserId != null && currentUserEmail != null) {
+            try {
+                UUID userId = UUID.fromString(currentUserId);
+
+                // Block the access token
+                if (accessToken != null && !accessToken.isEmpty()) {
+                    tokenBlocklistService.blockToken(accessToken, userId, currentUserEmail, "User logout");
+                }
+
+                // Block the refresh token
+                if (refreshToken != null && !refreshToken.isEmpty()) {
+                    tokenBlocklistService.blockRefreshToken(refreshToken, userId, currentUserEmail, "User logout");
+                }
+
+                log.info("Tokens blocked for user logout: {} ({})", currentUserEmail, currentUserId);
+
+            } catch (Exception e) {
+                log.error("Error blocking tokens during logout for user {}: {}", currentUserId, e.getMessage());
+            }
+        }
+
+        // Clear security context
+        SecurityContextHolder.clearContext();
     }
 }

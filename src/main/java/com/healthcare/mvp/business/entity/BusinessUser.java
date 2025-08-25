@@ -116,21 +116,9 @@ public class BusinessUser extends LegacyBaseEntity {
     @PrePersist
     @Override
     protected void onCreate() {
-        super.onCreate(); // Handles isActive initialization
-        if (emailVerified == null) {
-            emailVerified = false;
-        }
-        if (loginAttempts == null) {
-            loginAttempts = 0;
-        }
-        if (commissionPercentage == null) {
-            commissionPercentage = new BigDecimal("20.00");
-        }
-        if (totalHospitalsBrought == null) {
-            totalHospitalsBrought = 0;
-        }
-        if (totalCommissionEarned == null) {
-            totalCommissionEarned = BigDecimal.ZERO;
-        }
+
+    }
+
+    public UUID getId() {
     }
 }

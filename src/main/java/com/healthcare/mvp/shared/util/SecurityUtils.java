@@ -1,9 +1,11 @@
 package com.healthcare.mvp.shared.util;
 
 import com.healthcare.mvp.shared.security.AuthenticationDetails;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.StringUtils;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -156,4 +158,47 @@ public class SecurityUtils {
         }
     }
 
+    /**
+     * Extracts the JWT from the Authorization header of the request.
+     *
+     * @param request The HTTP request.
+     * @return The token string, or null if not found.
+     */
+    public static String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+    /**
+     * Gets the client's IP address from the request.
+     * It checks for the X-Forwarded-For header first, which is common for requests
+     * coming through a proxy or load balancer.
+     *
+     * @param request The HTTP request.
+     * @return The client's IP address.
+     */
+    public static String getClientIpAddress(HttpServletRequest request) {
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null || xfHeader.isEmpty() || !xfHeader.contains(",")) {
+            return request.getRemoteAddr();
+        }
+        // Return the first IP in the X-Forwarded-For list
+        return xfHeader.split(",")[0];
+    }
+
+    /**
+     * Generates a simple device fingerprint from the User-Agent header.
+     * For a real-world application, a more robust library like FingerprintJS would be used.
+     *
+     * @param request The HTTP request.
+     * @return A string representing the device fingerprint.
+     */
+    public static String generateDeviceFingerprint(HttpServletRequest request) {
+        // This is a very basic implementation.
+        // A real implementation would involve hashing more details.
+        return request.getHeader("User-Agent");
+    }
 }
