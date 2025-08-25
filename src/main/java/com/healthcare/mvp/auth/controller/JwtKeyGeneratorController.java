@@ -25,8 +25,8 @@ public class JwtKeyGeneratorController {
     public BaseResponse<Map<String, Object>> generateSecureKey() {
         Map<String, Object> result = new HashMap<>();
         
-        // Method 1: Using JJWT library
-        SecretKey key = Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS512);
+        // FIXED: Using modern JJWT API without deprecated SignatureAlgorithm
+        SecretKey key = Keys.secretKeyFor(io.jsonwebtoken.Jwts.SIG.HS512);
         String base64Key = Base64.getEncoder().encodeToString(key.getEncoded());
         
         // Method 2: Manual generation
@@ -50,7 +50,7 @@ public class JwtKeyGeneratorController {
         result.put("simpleKeyLength", simpleKey.length());
         
         result.put("recommendation", "Use the jjwtGeneratedKey in your application.yml");
-        result.put("example", "app.jwt.secret: " + base64Key);
+        result.put("example", "app.security.jwt.secret: " + base64Key);
         
         log.info("Generated secure JWT keys for HS512");
         

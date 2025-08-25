@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +41,7 @@ public class GlobalExceptionHandler {
                         .message("Validation failed")
                         .data(errors)
                         .statusCode(400)
-                        .timestamp(java.time.Instant.now().toString())
+                        .timestamp(LocalDateTime.now())
                         .build()
         );
     }
@@ -61,7 +63,7 @@ public class GlobalExceptionHandler {
                         .message("Validation failed")
                         .data(errors)
                         .statusCode(400)
-                        .timestamp(java.time.Instant.now().toString())
+                        .timestamp(LocalDateTime.now())
                         .build()
         );
     }

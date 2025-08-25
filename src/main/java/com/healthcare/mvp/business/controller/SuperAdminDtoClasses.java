@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -68,7 +69,8 @@ public class SuperAdminDtoClasses {
         
         public BigDecimal getMonthlyAverageCommission() {
             if (totalCommissionEarned != null && totalHospitalsBrought != null && totalHospitalsBrought > 0) {
-                return totalCommissionEarned.divide(new BigDecimal(totalHospitalsBrought), 2, BigDecimal.ROUND_HALF_UP);
+//                return totalCommissionEarned.divide(new BigDecimal(totalHospitalsBrought), 2, BigDecimal.ROUND_HALF_UP);
+                return totalCommissionEarned.divide(new BigDecimal(totalHospitalsBrought), 2, RoundingMode.HALF_UP);
             }
             return BigDecimal.ZERO;
         }

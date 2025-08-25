@@ -60,7 +60,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching dashboard data", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch dashboard data: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch dashboard data: " + e.getMessage())
             );
         }
     }
@@ -84,7 +84,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching Super Admin dashboard", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch Super Admin dashboard: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch Super Admin dashboard: " + e.getMessage())
             );
         }
     }
@@ -127,7 +127,7 @@ public class DashboardController {
         } catch (Exception e) {
             log.error("Error fetching recent activities", e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch activities: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch activities: " + e.getMessage())
             );
         }
     }

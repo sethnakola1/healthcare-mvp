@@ -13,14 +13,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 // Validate token signature and expiration
-                if (jwtUtil.validateToken(jwt)) {
+                if (jwtUtil.validateToken(jwt) ){
                     String userId = jwtUtil.getUserIdFromToken(jwt);
                     String email = jwtUtil.getEmailFromToken(jwt);
                     String hospitalId = jwtUtil.getHospitalIdFromToken(jwt);

@@ -2,6 +2,8 @@ package com.healthcare.mvp.hospital.repository;
 
 import com.healthcare.mvp.hospital.dto.HospitalDto;
 import com.healthcare.mvp.hospital.entity.Hospital;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -53,4 +55,18 @@ public interface HospitalRepository extends JpaRepository<Hospital, UUID> {
     Long countActiveHospitals();
 
     List<HospitalDto> findByPartnerCodeUsed(String partnerCodeUsed);
+
+    /**
+     * FIXED: Add missing paginated query for active hospitals
+     */
+    @Query("SELECT h FROM Hospital h WHERE h.isActive = :isActive")
+    Page<Hospital> findByIsActiveWithPagination(@Param("isActive") Boolean isActive, Pageable pageable);
+
+    /**
+     * FIXED: Add missing countByIsActive method
+     */
+    @Query("SELECT COUNT(h) FROM Hospital h WHERE h.isActive = :isActive")
+    long countByIsActive(@Param("isActive") Boolean isActive);
+
+
 }

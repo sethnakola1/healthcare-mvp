@@ -2,6 +2,9 @@ package com.healthcare.mvp.business.repository;
 
 import com.healthcare.mvp.business.entity.BusinessUser;
 import com.healthcare.mvp.shared.constants.BusinessRole;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -35,6 +38,11 @@ public interface BusinessUserRepository extends JpaRepository<BusinessUser, UUID
      * Find users by business role
      */
     List<BusinessUser> findByBusinessRole(BusinessRole businessRole);
+
+    /**
+     * ADDED: Find users by business role with pagination - FIXED
+     */
+    Page<BusinessUser> findByBusinessRoleAndIsActive(BusinessRole businessRole, Boolean isActive, Pageable pageable);
 
     /**
      * Check if email exists
@@ -82,16 +90,16 @@ public interface BusinessUserRepository extends JpaRepository<BusinessUser, UUID
     long countActiveUsersByRole(@Param("role") BusinessRole role);
 
     /**
-     * Finds a BusinessUser by their password reset token, but only if the token has not expired.
+     * Finds a BusinessUser by their reset token.
      *
-     * @param passwordResetToken The password reset token associated with the user.
-     * @param now The current time.
-     * @return An Optional containing the BusinessUser if found and the token is valid, or empty otherwise.
+     * @param resetToken The reset token associated with the user.
+     * @return An Optional containing the BusinessUser if found, or empty if not found.
      */
-    Optional<BusinessUser> findByPasswordResetTokenAndPasswordResetTokenExpiryAfter(String passwordResetToken, LocalDateTime now);
-
+    Optional<BusinessUser> findByResetToken(String resetToken);
 
     @Modifying
     @Query(value = "UPDATE business_user SET password_hash = :passwordHash, login_attempts = 0, account_locked_until = NULL WHERE email = :email", nativeQuery = true)
     int updatePasswordHash(@Param("email") String email, @Param("passwordHash") String passwordHash);
+
+    Optional<Object> findByPasswordResetTokenAndPasswordResetTokenExpiryAfter(@NotBlank(message = "Token is required") String token, LocalDateTime now);
 }

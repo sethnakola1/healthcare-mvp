@@ -11,16 +11,15 @@ import com.healthcare.mvp.shared.util.JwtUtil;
 import com.healthcare.mvp.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional
@@ -309,7 +308,7 @@ public class EnhancedAuthenticationService {
             List.of(new SimpleGrantedAuthority("ROLE_" + role))
         );
 
-        String refreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId().toString());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getBusinessUserId(), user.getEmail());
 
         return LoginResponse.builder()
                 .accessToken(accessToken)

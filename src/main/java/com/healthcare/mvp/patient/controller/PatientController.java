@@ -4,6 +4,7 @@ import com.healthcare.mvp.patient.dto.CreatePatientRequest;
 import com.healthcare.mvp.patient.dto.PatientDto;
 import com.healthcare.mvp.patient.service.PatientService;
 import com.healthcare.mvp.shared.dto.BaseResponse;
+import com.healthcare.mvp.shared.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

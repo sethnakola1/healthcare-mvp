@@ -8,8 +8,9 @@ import com.healthcare.mvp.hospital.repository.HospitalRepository;
 import com.healthcare.mvp.shared.constants.BusinessRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,6 @@ public class BusinessUserService {
     private final HospitalRepository hospitalRepository;
     private final PasswordEncoder passwordEncoder;
     private final PartnerCodeService partnerCodeService;
-
 
     /**
      * Create initial Super Admin in database with FIXED password handling
@@ -213,6 +213,16 @@ public class BusinessUserService {
     }
     
     /**
+     * ADDED: Get all Tech Advisors with pagination support - FIXED
+     */
+    public Page<BusinessUserDto> getAllTechAdvisorsPageable(Pageable pageable) {
+        // Use the new repository method with proper pagination
+        Page<BusinessUser> techAdvisorsPage = businessUserRepository.findByBusinessRoleAndIsActive(
+                BusinessRole.TECH_ADVISOR, true, pageable);
+        return techAdvisorsPage.map(this::convertToDto);
+    }
+
+    /**
      * Get Business User by ID
      */
     public Optional<BusinessUserDto> getBusinessUserById(UUID businessUserId) {
@@ -318,7 +328,6 @@ public class BusinessUserService {
     public Map<String, Object> getSystemMetrics() {
         Map<String, Object> metrics = new HashMap<>();
         metrics.put("totalUsers", businessUserRepository.count());
-//        metrics.put("activeUsers", businessUserRepository.countByIsActive(true));
         metrics.put("superAdminCount", businessUserRepository.countActiveUsersByRole(BusinessRole.SUPER_ADMIN));
         metrics.put("techAdvisorCount", businessUserRepository.countActiveUsersByRole(BusinessRole.TECH_ADVISOR));
         metrics.put("totalHospitals", hospitalRepository.count());

@@ -103,7 +103,7 @@ public class AuthenticationService {
 
     public LoginResponse refreshToken(RefreshTokenRequest request) {
         try {
-            if (!jwtUtil.validateToken(request.getRefreshToken(), null)) {
+            if (!jwtUtil.validateToken(request.getRefreshToken())) {
                 throw new AuthenticationException("Invalid refresh token");
             }
 
@@ -276,7 +276,7 @@ public class AuthenticationService {
             @NotBlank(message = "Token is required") String token,
             @NotBlank(message = "New password is required") @Size(min = 8, message = "New password must be at least 8 characters long") String newPassword) {
 
-        BusinessUser user = businessUserRepository.findByPasswordResetTokenAndPasswordResetTokenExpiryAfter(token, LocalDateTime.now())
+        BusinessUser user = (BusinessUser) businessUserRepository.findByPasswordResetTokenAndPasswordResetTokenExpiryAfter(token, LocalDateTime.now())
                 .orElseThrow(() -> new AuthenticationException("Invalid or expired password reset token."));
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -338,7 +338,9 @@ public class AuthenticationService {
 
                 // Block the access token
                 if (accessToken != null && !accessToken.isEmpty()) {
-                    tokenBlocklistService.blockToken(accessToken, userId, currentUserEmail, "User logout");
+                    tokenBlocklistService.blockToken(accessToken,
+                            /*userId, currentUserEmail,*/
+                            "User logout");
                 }
 
                 // Block the refresh token

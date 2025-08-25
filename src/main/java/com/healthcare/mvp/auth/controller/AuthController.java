@@ -76,11 +76,11 @@ public class AuthController {
                     .refreshToken(refreshToken.getToken())
                     .tokenType("Bearer")
                     .expiresIn(jwtUtil.getJwtExpirationMs())
-//                    .user(UserInfo.builder()
-//                            .id(userId)
-//                            .username(userDetails.getUsername())
-//                            .role(role)
-//                            .build())
+                    .user(UserInfo.builder()
+                            .id(userId)
+                            .username(userDetails.getUsername())
+                            .role(role)
+                            .build())
                     .build();
 
             log.info("User {} logged in successfully from IP: {}", loginRequest.getUsername(), ipAddress);

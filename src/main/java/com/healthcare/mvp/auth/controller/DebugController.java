@@ -158,7 +158,7 @@ public class DebugController {
             log.error("Failed to fix super admin", e);
             result.put("error", e.getMessage());
             result.put("errorType", e.getClass().getSimpleName());
-            return ResponseEntity.ok(BaseResponse.error("Fix failed: " + e.getMessage(), null));
+            return ResponseEntity.ok(BaseResponse.error("Fix failed: " + e.getMessage()));
         }
     }
 
@@ -249,7 +249,7 @@ public class DebugController {
         } catch (Exception e) {
             log.error("Diagnostics failed", e);
             diagnostics.put("error", e.getMessage());
-            return ResponseEntity.ok(BaseResponse.error("Diagnostics failed: " + e.getMessage(), null));
+            return ResponseEntity.ok(BaseResponse.error("Diagnostics failed: " + e.getMessage()));
         }
     }
     

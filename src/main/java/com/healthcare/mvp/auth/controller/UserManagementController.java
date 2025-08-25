@@ -68,7 +68,7 @@ public class UserManagementController {
         } catch (Exception e) {
             log.error("Registration failed for email: {}", request.getEmail(), e);
             return ResponseEntity.badRequest()
-                    .body(BaseResponse.error("Registration failed: " + e.getMessage(), null));
+                    .body(BaseResponse.error("Registration failed: " + e.getMessage()));
         }
     }
 
