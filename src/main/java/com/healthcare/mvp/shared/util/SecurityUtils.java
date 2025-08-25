@@ -1,5 +1,6 @@
-package com.healthcare.mvp.shared.security;
+package com.healthcare.mvp.shared.util;
 
+import com.healthcare.mvp.shared.security.AuthenticationDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;

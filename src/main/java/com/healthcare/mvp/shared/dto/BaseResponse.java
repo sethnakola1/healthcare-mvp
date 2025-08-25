@@ -1,47 +1,37 @@
 package com.healthcare.mvp.shared.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
-@Getter
-@Setter
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class BaseResponse<T> implements Serializable {
-
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class BaseResponse<T> {
     private boolean success;
     private String message;
     private T data;
-    private ErrorDetails error;
-    private final LocalDateTime timestamp = LocalDateTime.now();
+    private String timestamp;
+    private int statusCode;
 
-    private BaseResponse(boolean success, String message, T data, ErrorDetails error) {
-        this.success = success;
-        this.message = message;
-        this.data = data;
-        this.error = error;
+    public static <T> BaseResponse<T> success(T data) {
+        return BaseResponse.<T>builder()
+                .success(true)
+                .data(data)
+                .message("Success")
+                .timestamp(java.time.Instant.now().toString())
+                .statusCode(200)
+                .build();
     }
 
-    public static <T> BaseResponse<T> success(String message, T data) {
-        return new BaseResponse<>(true, message, data, null);
-    }
-
-    public static <T> BaseResponse<T> error(String code, String message) {
-        return new BaseResponse<>(false, "An error occurred", null, new ErrorDetails(code, message));
-    }
-
-    @Getter
-    @Setter
-    private static class ErrorDetails implements Serializable {
-        private String code;
-        private String message;
-
-        public ErrorDetails(String code, String message) {
-            this.code = code;
-            this.message = message;
-        }
+    public static <T> BaseResponse<T> error(String message, int statusCode) {
+        return BaseResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .timestamp(java.time.Instant.now().toString())
+                .statusCode(statusCode)
+                .build();
     }
 }

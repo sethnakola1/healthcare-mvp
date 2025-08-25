@@ -8,7 +8,7 @@ import com.healthcare.mvp.business.repository.BusinessUserRepository;
 import com.healthcare.mvp.shared.audit.AuditLogger;
 import com.healthcare.mvp.shared.exception.AuthenticationException;
 import com.healthcare.mvp.shared.util.JwtUtil;
-import com.healthcare.mvp.shared.security.SecurityUtils;
+import com.healthcare.mvp.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

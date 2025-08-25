@@ -4,16 +4,11 @@ import com.healthcare.mvp.prescription.dto.CreatePrescriptionRequest;
 import com.healthcare.mvp.prescription.dto.PrescriptionDto;
 import com.healthcare.mvp.prescription.entity.Prescription;
 import com.healthcare.mvp.prescription.repository.PrescriptionRepository;
-import com.healthcare.mvp.shared.dto.BaseResponse;
 import com.healthcare.mvp.shared.exception.AuthorizationException;
-import com.healthcare.mvp.shared.exception.ResourceNotFoundException;
-import com.healthcare.mvp.shared.security.SecurityUtils;
+import com.healthcare.mvp.shared.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

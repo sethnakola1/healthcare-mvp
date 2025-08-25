@@ -3,13 +3,12 @@ package com.healthcare.mvp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.healthcare.mvp.shared.security.SecurityUtils;
+import com.healthcare.mvp.shared.util.SecurityUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
-import java.util.Optional;
 import java.util.UUID;
 
 /**

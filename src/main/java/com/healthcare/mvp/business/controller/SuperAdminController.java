@@ -49,10 +49,10 @@ public class SuperAdminController {
     public ResponseEntity<BaseResponse<BusinessUserDto>> initializeSuperAdmin() {
         try {
             BusinessUserDto superAdmin = businessUserService.createInitialSuperAdmin();
-            return ResponseEntity.ok(BaseResponse.success("Super Admin initialized successfully", superAdmin));
+            return ResponseEntity.ok(BaseResponse.success("Super Admin initialized successfully"+ superAdmin));
         } catch (Exception e) {
             log.warn("Super Admin initialization failed: {}", e.getMessage());
-            return ResponseEntity.ok(BaseResponse.success("Super Admin already exists", null));
+            return ResponseEntity.ok(BaseResponse.success("Super Admin already exists"));
         }
     }
 
@@ -82,12 +82,12 @@ public class SuperAdminController {
 
             BusinessUserDto techAdvisor = businessUserService.createTechAdvisor(serviceRequest);
 
-            return ResponseEntity.ok(BaseResponse.success("Tech Advisor created successfully", techAdvisor));
+            return ResponseEntity.ok(BaseResponse.success("Tech Advisor created successfully"+ techAdvisor));
 
         } catch (Exception e) {
             log.error("Failed to create Tech Advisor: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to create Tech Advisor: " + e.getMessage(), null)
+                BaseResponse.error("Failed to create Tech Advisor: " + e.getMessage(), 1001)
             );
         }
     }
@@ -114,7 +114,7 @@ public class SuperAdminController {
         } catch (Exception e) {
             log.error("Failed to fetch Tech Advisors: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch Tech Advisors: " + e.getMessage(), sortDir)
+                BaseResponse.error("Failed to fetch Tech Advisors: " + e.getMessage(), 1002)
             );
         }
     }
@@ -129,13 +129,13 @@ public class SuperAdminController {
 
         try {
             return businessUserService.getBusinessUserById(techAdvisorId)
-                    .map(advisor -> ResponseEntity.ok(BaseResponse.success("Tech Advisor found", advisor)))
+                    .map(advisor -> ResponseEntity.ok(BaseResponse.success("Tech Advisor found"+ advisor)))
                     .orElse(ResponseEntity.notFound().build());
 
         } catch (Exception e) {
             log.error("Failed to fetch Tech Advisor {}: {}", techAdvisorId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch Tech Advisor: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch Tech Advisor: " + e.getMessage(), 1003)
             );
         }
     }
@@ -161,12 +161,12 @@ public class SuperAdminController {
 
             BusinessUserDto updated = businessUserService.updateTechAdvisor(techAdvisorId, serviceRequest);
 
-            return ResponseEntity.ok(BaseResponse.success("Tech Advisor updated successfully", updated));
+            return ResponseEntity.ok(BaseResponse.success("Tech Advisor updated successfully"+ updated));
 
         } catch (Exception e) {
             log.error("Failed to update Tech Advisor {}: {}", techAdvisorId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to update Tech Advisor: " + e.getMessage(), null)
+                BaseResponse.error("Failed to update Tech Advisor: " + e.getMessage(), 1004)
             );
         }
     }
@@ -179,12 +179,12 @@ public class SuperAdminController {
     public ResponseEntity<BaseResponse<String>> deactivateTechAdvisor(@PathVariable UUID techAdvisorId) {
         try {
             businessUserService.deactivateTechAdvisor(techAdvisorId);
-            return ResponseEntity.ok(BaseResponse.success("Tech Advisor deactivated successfully", "DEACTIVATED"));
+            return ResponseEntity.ok(BaseResponse.success("Tech Advisor deactivated successfully " + " DEACTIVATED"));
 
         } catch (Exception e) {
             log.error("Failed to deactivate Tech Advisor {}: {}", techAdvisorId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to deactivate Tech Advisor: " + e.getMessage(), null)
+                BaseResponse.error("Failed to deactivate Tech Advisor: " + e.getMessage(), 1005)
             );
         }
     }
@@ -206,12 +206,12 @@ public class SuperAdminController {
             stats.put("systemHealth", "HEALTHY");
             stats.put("version", "1.0.0");
 
-            return ResponseEntity.ok(BaseResponse.success("System statistics retrieved", stats));
+            return ResponseEntity.ok(BaseResponse.success("System statistics retrieved"+ stats));
 
         } catch (Exception e) {
             log.error("Failed to fetch system statistics: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch system statistics: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch system statistics: " + e.getMessage(), 1006)
             );
         }
     }
@@ -253,7 +253,7 @@ public class SuperAdminController {
         } catch (Exception e) {
             log.error("Failed to fetch users: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch users: " + e.getMessage(), status)
+                BaseResponse.error("Failed to fetch users: " + e.getMessage(), 1007)
             );
         }
     }
@@ -275,7 +275,7 @@ public class SuperAdminController {
         } catch (Exception e) {
             log.error("Failed to fetch hospitals: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch hospitals: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch hospitals: " + e.getMessage(), 1008)
             );
         }
     }
@@ -297,12 +297,12 @@ public class SuperAdminController {
             analytics.put("systemUsage", generateUsageData(days));
             analytics.put("revenueMetrics", generateRevenueData(days));
 
-            return ResponseEntity.ok(BaseResponse.success("Analytics retrieved", analytics));
+            return ResponseEntity.ok(BaseResponse.success("Analytics retrieved"+ analytics));
 
         } catch (Exception e) {
             log.error("Failed to fetch analytics: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(
-                BaseResponse.error("Failed to fetch analytics: " + e.getMessage(), null)
+                BaseResponse.error("Failed to fetch analytics: " + e.getMessage(), 1009)
             );
         }
     }

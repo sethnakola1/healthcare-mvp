@@ -3,7 +3,7 @@ package com.healthcare.mvp.user.controller;
 import com.healthcare.mvp.business.dto.BusinessUserDto;
 import com.healthcare.mvp.business.service.BusinessUserService;
 import com.healthcare.mvp.shared.dto.BaseResponse;
-import com.healthcare.mvp.shared.security.SecurityUtils;
+import com.healthcare.mvp.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

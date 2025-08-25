@@ -1,46 +1,38 @@
-# ============================================
-# HEALTHCARE MVP APPLICATION CONFIGURATION
-# ============================================
+#server:
+#  port: 8080
+#  servlet:
+#    context-path: /api
+#  error:
+#    include-message: never
+#    include-binding-errors: never
+#    include-stacktrace: never
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
 
 spring:
   # Application Configuration
   application:
     name: healthcare-mvp
-  profiles:
-    active: local
 
-  # Mail Configuration
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME:your-email@gmail.com}
-    password: ${MAIL_PASSWORD:your-app-password}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          ssl:
-            enable: false
-
-  # Redis Configuration
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
-  # Database Configuration
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://healthhorizon-db.cy5cs4aqyhju.us-east-1.rds.amazonaws.com:5432/healthcare_mvp_db}
     username: ${DATABASE_USERNAME:healthcare_mvp_user}
     password: ${DATABASE_PASSWORD:SecurePass2025!@#}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      idle-timeout: 60000
+      maximum-pool-size: 20
+      minimum-idle: 5
       connection-timeout: 30000
+      idle-timeout: 600000
       max-lifetime: 1800000
       leak-detection-threshold: 60000
       validation-timeout: 5000
@@ -64,62 +56,51 @@ spring:
           provider_disables_autocommit: false
     open-in-view: false
 
+
+  cache:
+    type: redis
+
+  redis:
+    host: localhost
+    port: 6379
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    jedis:
+      pool:
+        max-active: 20
+        max-wait: -1ms
+        max-idle: 10
+        min-idle: 5
+
+# Healthcare Application Security Configuration
+healthcare:
+  app:
+    jwtSecret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    jwtExpirationMs: 900000      # 15 minutes
+    jwtRefreshExpirationMs: 604800000  # 7 days
+    maxRefreshTokensPerUser: 5
+
   # Security Configuration
   security:
-    require-ssl: false
+    cors:
+      allowed-origins:
+        - http://localhost:3000
+        - http://localhost:8080
+        - https://yourdomain.com
+      allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
 
-# Server Configuration
-server:
-  port: ${SERVER_PORT:8080}
-  compression:
-    enabled: true
-  http2:
-    enabled: true
-  error:
-    include-message: always
-    include-binding-errors: always
-
-# Custom Application Properties
-app:
-  # CORS Configuration
-  cors:
-    allowed-origins:
-      - "http://localhost:3000"
-      - "https://localhost:3000"
-      - "http://127.0.0.1:3000"
-      - "http://localhost:3001"
-    allowed-methods:
-      - GET
-      - POST
-      - PUT
-      - DELETE
-      - OPTIONS
-      - PATCH
-    allowed-headers: "*"
-    allow-credentials: true
-    max-age: 3600
-
-  # JWT Security Configuration
-  security:
-    jwt:
-      secret: ${JWT_SECRET:ThisIsAVeryLongSecretKeyForHS512AlgorithmThatIsAtLeast64BytesLong1234567890123456789}
-      expiration: ${JWT_EXPIRATION:86400} # 24 hours in seconds
-      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800} # 7 days in seconds
-      blocklist:
-        enabled: true
-
-  # Business Configuration
-  business:
-    commission:
-      default-rate: 20.0
-      max-rate: 30.0
-
-  # Notification Configuration
-  notification:
-    email:
-      enabled: ${EMAIL_NOTIFICATIONS_ENABLED:true}
-    sms:
-      enabled: ${SMS_NOTIFICATIONS_ENABLED:false}
+    rate-limiting:
+      enabled: true
+      login-attempts: 5
+      window-size-minutes: 15
 
 # Logging Configuration
 logging:
@@ -128,35 +109,41 @@ logging:
     com.healthcare.mvp.auth: ${LOG_LEVEL_AUTH:DEBUG}
     org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
     org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+    org.hibernate: ${LOG_LEVEL_WEB:WARN}
     org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}
     org.hibernate.type.descriptor.sql.BasicBinder: ${LOG_LEVEL_SQL_PARAMS:WARN}
     com.zaxxer.hikari: ${LOG_LEVEL_HIKARI:WARN}
     root: ${LOG_LEVEL_ROOT:INFO}
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: ${LOG_FILE_PATH:logs/healthcare-mvp.log}
+    max-size: 10MB
+    max-history: 30
 
-# Management & Actuator
+# Actuator Configuration
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus
-      cors:
-        allowed-origins:
-          - "http://localhost:3000"
-          - "https://localhost:3000"
-        allowed-methods: GET,POST
-        allowed-headers: "*"
+      base-path: /actuator
+
   endpoint:
     health:
       show-details: always
+#      show-details: when-authorized
+  security:
+    enabled: true
   health:
     db:
       enabled: true
 
+# Validation Configuration
+hibernate:
+  validator:
+    fail_fast: false
 # Application Info
 info:
   app:
